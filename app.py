@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Page setup
-st.set_page_config(page_title="Sales Analysis Dashboard", layout="wide")
+st.set_page_config(page_title="Sales Analysis Dashboard M24SG", layout="wide")
 st.markdown(
     """
     <style>
