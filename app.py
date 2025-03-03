@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Page setup
-st.set_page_config(page_title="Sales Analysis Dashboard M24SG", layout="wide")
+st.set_page_config(page_title="Sales Analysis Dashboard", layout="wide")
 st.markdown(
     """
     <style>
@@ -43,7 +43,7 @@ def sales_by_3hour(df):
     return df.groupby('3-Hour Interval').agg({'Amount': 'sum', 'Username': 'count'}).reset_index()
 
 if menu == "Dashboard":
-    st.title("📊 Sales Analysis Dashboard 🚀")
+    st.title("📊 Sales Analysis Dashboard M24SG🚀")
     total_amount = data['Amount'].sum()
     total_transactions = len(data)
     unique_users = data['Username'].nunique()
