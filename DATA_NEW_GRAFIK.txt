@@ -1,0 +1,88 @@
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Membaca data dari CSV
+data = pd.read_csv('data_pembelian.csv')
+
+# Menentukan format DateTime untuk kolom 'Date' dan 'Time'
+data['DateTime'] = pd.to_datetime(data['Date'] + ' ' + data['Time'], format='%d/%m/%Y %I:%M:%S %p', errors='coerce')
+
+# Mengubah Amount menjadi angka
+data['Amount'] = pd.to_numeric(data['Amount'], errors='coerce')
+
+# Menambahkan kolom 'Hour' untuk analisis jam
+data['Hour'] = data['DateTime'].dt.hour
+
+data['Date'] = pd.to_datetime(data['DateTime']).dt.date
+
+# Menghapus baris dengan nilai NaT pada kolom 'Date'
+data = data.dropna(subset=['Date'])
+
+# Filter data berdasarkan rentang tanggal
+start_date = st.date_input("Pilih Tanggal Mulai", min_value=data["Date"].min(), max_value=data["Date"].max())
+end_date = st.date_input("Pilih Tanggal Selesai", min_value=start_date, max_value=data["Date"].max())
+
+start_date = pd.to_datetime(start_date).date()
+end_date = pd.to_datetime(end_date).date()
+
+filtered_data = data[(data["Date"] >= start_date) & (data["Date"] <= end_date)]
+
+if filtered_data.empty:
+    st.write("Tidak ada data yang cocok dengan rentang tanggal yang dipilih.")
+else:
+    st.write(f"Data Penjualan dari {start_date} sampai {end_date}")
+    
+    # Menampilkan Amount dalam format RM
+    filtered_data['Formatted_Amount'] = filtered_data['Amount'].apply(lambda x: f"RM {x:,.2f}")
+    st.dataframe(filtered_data[['Date', 'Time', 'Hour', 'Formatted_Amount']])
+    
+    # Grafik Pembelian Berdasarkan Jam
+    pembelian_per_jam = filtered_data.groupby("Hour")["Amount"].sum()
+    
+    if not pembelian_per_jam.empty:
+        fig, ax1 = plt.subplots(figsize=(12, 6))
+        color = 'tab:blue'
+        ax1.set_xlabel("Jam")
+        ax1.set_ylabel("Total Transaksi", color=color)
+        sns.barplot(x=pembelian_per_jam.index, y=pembelian_per_jam.values, palette="coolwarm", ax=ax1)
+        ax1.tick_params(axis='y', labelcolor=color)
+        
+        ax2 = ax1.twinx()
+        color = 'tab:red'
+        ax2.set_ylabel("Total Amount (RM)", color=color)
+        ax2.plot(pembelian_per_jam.index, pembelian_per_jam.values, marker='o', linestyle='-', color=color)
+        ax2.tick_params(axis='y', labelcolor=color)
+        
+        plt.title(f"Total Penjualan Berdasarkan Jam ({start_date} - {end_date})", fontsize=14)
+        st.pyplot(fig)
+    else:
+        st.write("Tidak ada pembelian dalam rentang waktu yang dipilih.")
+    
+    # Grafik Pembelian Berdasarkan Periode 6 Jam
+    def period_of_day(hour):
+        if 0 <= hour < 6:
+            return '00:00 - 05:59'
+        elif 6 <= hour < 12:
+            return '06:00 - 11:59'
+        elif 12 <= hour < 18:
+            return '12:00 - 17:59'
+        else:
+            return '18:00 - 23:59'
+    
+    filtered_data['6_hour_period'] = filtered_data['Hour'].apply(period_of_day)
+    pembelian_per_6_jam = filtered_data.groupby("6_hour_period")["Amount"].sum()
+    
+    if not pembelian_per_6_jam.empty:
+        plt.figure(figsize=(10, 6))
+        sns.barplot(x=pembelian_per_6_jam.index, y=pembelian_per_6_jam.values, palette="viridis")
+        plt.title(f"Total Penjualan Berdasarkan Periode 6 Jam ({start_date} - {end_date})", fontsize=14)
+        plt.xlabel("Periode 6 Jam", fontsize=12)
+        plt.ylabel("Total Amount (RM)", fontsize=12)
+        plt.xticks(rotation=45)
+        for index, value in enumerate(pembelian_per_6_jam.values):
+            plt.text(index, value + 50, f"RM {value:,.2f}", ha='center', fontsize=10, color='black')
+        st.pyplot(plt)
+    else:
+        st.write("Tidak ada pembelian dalam periode waktu yang dipilih.")
